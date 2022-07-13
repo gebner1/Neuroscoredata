@@ -14,7 +14,11 @@ library(datasauRus)
 ## This is the code for the filtered sham and trauma data and the data is pivoted
 ```{r}
 NSR <- read_csv(file = "data/NSR.csv")
-NSR
+
+NSR <- NSR %>% mutate(`BOP (psi)` = replace(`BOP (psi)`,`BOP (psi)` == 'x','X'))
+
+NSR <- NSR %>% mutate(`BOP (psi)` = replace(`BOP (psi)`, is.na(`BOP (psi)`),'T'))
+
 longerNSR <- pivot_longer(NSR, names_to = "time_point" , 
              values_to = "score",
              cols = c(3:7))
