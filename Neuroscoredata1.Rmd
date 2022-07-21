@@ -7,8 +7,11 @@ date: "7/13/2022"
 
 ## Load packages and data
 
-```{r load-packages, message=FALSE}
-library(tidyverse) 
+```{r load-packages}
+library(lmerTest)
+library(ggplot2)
+library(tidyverse)
+library(car)
 library(datasauRus)
 ```
 ## This is the code for the filtered sham and trauma data and the data is pivoted
@@ -18,18 +21,66 @@ NSR <- read_csv(file = "data/NSR.csv")
 NSR <- NSR %>% mutate(`BOP (psi)` = replace(`BOP (psi)`,`BOP (psi)` == 'x','X'))
 
 NSR <- NSR %>% mutate(`BOP (psi)` = replace(`BOP (psi)`, is.na(`BOP (psi)`),'T'))
-
+colnames(NSR)[3:7]<- c("A","B","C","D","E")
 longerNSR <- pivot_longer(NSR, names_to = "time_point" , 
              values_to = "score",
              cols = c(3:7))
+colnames(longerNSR)[1:2]<-c("ID","BOP")
 
 sham <- longerNSR %>% 
-  filter(`BOP (psi)` == "X" | `BOP (psi)` == "x")
+  filter(BOP == "X" | BOP == "x")
 trauma <- longerNSR %>%
-  filter(is.na(`BOP (psi)`))
+  filter((BOP == "T"))
 sham
 trauma
 ```
+
+```{r}
+longerNSR<- longerNSR %>%
+  filter(!is.na(score)) %>%
+  mutate(score = score+1)
+longerNSR$logscore<- log(longerNSR$score)
+```
+
+```{r}
+longerNSR<- longerNSR%>%
+  filter(time_point != "E")
+m <- lmer(logscore ~ time_point + BOP + time_point:BOP + (1|ID), data = longerNSR, REML = F)
+summary(m)
+
+
+```
+
+```{r}
+hist(residuals(m))
+# qqplot
+qqnorm(residuals(m))
+qqline(residuals(m))
+# qqplot with confidence bounds (car library function)
+qqPlot(residuals(m))
+
+## plotting the data
+# box and whisker plot
+longerNSR %>% ggplot(aes(x = time_point, y = score, color = BOP))+
+                   geom_boxplot()
+
+# mean and SE over time
+sum_data <- longerNSR %>% 
+  filter(is.na(score)==F)%>%
+  group_by(time_point, BOP) %>%
+  summarise(mean_score = mean(score,na.exclude=T), 
+            sd = sd(score),
+            n = n(),
+            SE = sd / sqrt(n))
+
+sum_data %>% ggplot(aes(x = time_point, y = mean_score, color = BOP))+
+  geom_errorbar(aes(ymin=mean_score-SE, ymax=mean_score+SE), width=.1)+
+  geom_line(aes(group = BOP))+
+  geom_point()
+```
+
+
+
 
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
