@@ -26,13 +26,17 @@ longerNSR <- pivot_longer(NSR, names_to = "time_point" ,
              values_to = "score",
              cols = c(3:7))
 colnames(longerNSR)[1:2]<-c("ID","BOP")
+longerNSR <- longerNSR %>%
+  filter(ID > 350)
+```
 
-sham <- longerNSR %>% 
-  filter(BOP == "X" | BOP == "x")
-trauma <- longerNSR %>%
-  filter((BOP == "T"))
-sham
-trauma
+```{r}
+# sham <- longerNSR %>%
+#   filter(BOP == "X" | BOP == "x")
+# trauma <- longerNSR %>%
+#   filter((BOP == "T"))
+# sham
+# trauma
 ```
 
 ```{r}
@@ -47,8 +51,6 @@ longerNSR<- longerNSR%>%
   filter(time_point != "E")
 m <- lmer(logscore ~ time_point + BOP + time_point:BOP + (1|ID), data = longerNSR, REML = F)
 summary(m)
-
-
 ```
 
 ```{r}
